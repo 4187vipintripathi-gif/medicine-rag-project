@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediChat</title>
+    <style>
+        :root {
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --primary: #0f766e;
+            --primary-soft: #cffafe;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --accent: #38bdf8;
+            --danger: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(180deg, #f8fafc 0%, #e2f0f6 100%);
+            color: var(--text);
+        }
+
+        .page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+
+        .panel {
+            width: min(980px, 100%);
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.08);
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 32px 32px 24px;
+            background: var(--primary-soft);
+            color: #064e52;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: clamp(2rem, 2.5vw, 2.6rem);
+        }
+
+        .header p {
+            margin: 12px 0 0;
+            max-width: 760px;
+            line-height: 1.7;
+            color: #115e59;
+        }
+
+        .content {
+            display: grid;
+            gap: 24px;
+            padding: 32px;
+        }
+
+        .chat-window {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            background: #f8fafc;
+            min-height: 360px;
+            max-height: 580px;
+            overflow-y: auto;
+        }
+
+        .message {
+            display: inline-flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 18px 20px;
+            border-radius: 20px;
+            width: fit-content;
+            max-width: 86%;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: #cffafe;
+            color: #064e52;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message.bot {
+            align-self: flex-start;
+            background: #eef2ff;
+            color: #1e293b;
+            border-bottom-left-radius: 6px;
+        }
+
+        .message .label {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        .form-panel {
+            display: grid;
+            gap: 16px;
+        }
+
+        label {
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            resize: vertical;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            font-size: 1rem;
+            line-height: 1.7;
+            background: white;
+            color: var(--text);
+        }
+
+        select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            font-size: 1rem;
+            line-height: 1.7;
+            background: white;
+            color: var(--text);
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .controls .helper {
+            color: var(--muted);
+            font-size: 0.94rem;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 14px;
+            padding: 14px 24px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 14px 24px rgba(15, 118, 110, 0.18);
+        }
+
+        button:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .status {
+            border-radius: 14px;
+            padding: 14px 18px;
+            background: #f8d7da;
+            color: #842029;
+            border: 1px solid #f5c2c7;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-left-color: white;
+            border-radius: 50%;
+            animation: spin 0.85s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 720px) {
+            .panel {
+                border-radius: 20px;
+            }
+
+            .content {
+                padding: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <main class="panel">
+            <section class="header">
+                <h1>MediChat</h1>
+                <p>Ask medical-related questions and get answers from the knowledge base. Your question will be sent to the backend and the response will appear in the chat window.</p>
+            </section>
+
+            <section class="content">
+                <div class="chat-window" id="chatWindow">
+                    <div class="message bot">
+                        <div class="label">Assistant</div>
+                        <div>Hi there! Enter your medical question below and I will search the supporting context to answer it.</div>
+                    </div>
+                </div>
+
+                <div class="form-panel">
+                    <label for="questionInput">Your question</label>
+                    <textarea id="questionInput" placeholder="e.g. What are the common symptoms of hypertension?" rows="5"></textarea>
+                    <label for="medicineSelect">Related Medicines</label>
+                    <select id="medicineSelect">
+                        <option value="">Select a medicine</option>
+                    </select>
+                    <div class="controls">
+                        <div class="helper">Answers are generated from backend context using retrieval-augmented QA.</div>
+                        <button id="sendButton">Ask MediChat</button>
+                    </div>
+                    <div id="statusMessage" class="status" style="display:none;"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const questionInput = document.getElementById('questionInput');
+        const sendButton = document.getElementById('sendButton');
+        const statusMessage = document.getElementById('statusMessage');
+        const chatWindow = document.getElementById('chatWindow');
+        const medicineSelect = document.getElementById('medicineSelect');
+
+        function setStatus(text, isError = false) {
+            if (!text) {
+                statusMessage.style.display = 'none';
+                return;
+            }
+            statusMessage.style.display = 'block';
+            statusMessage.textContent = text;
+            statusMessage.style.background = isError ? '#fde2e5' : '#e8f7ff';
+            statusMessage.style.color = isError ? '#9b1c1c' : '#0f172a';
+            statusMessage.style.borderColor = isError ? '#f5c2c7' : '#bae6fd';
+        }
+
+        function addMessage(text, role) {
+            const message = document.createElement('div');
+            message.className = `message ${role}`;
+            const label = document.createElement('div');
+            label.className = 'label';
+            label.textContent = role === 'user' ? 'You' : 'Assistant';
+            const body = document.createElement('div');
+            body.textContent = text;
+            message.appendChild(label);
+            message.appendChild(body);
+            chatWindow.appendChild(message);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        async function sendQuestion() {
+            const question = questionInput.value.trim();
+            const selectedMedicine = medicineSelect.value;
+            if (!question) {
+                setStatus('Please enter a question before sending.', true);
+                return;
+            }
+
+            sendButton.disabled = true;
+            setStatus('Sending question to backend...', false);
+            addMessage(question, 'user');
+
+            try {
+                const response = await fetch('/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question, medicine: selectedMedicine })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                addMessage(data.answer || 'No answer returned from the backend.', 'bot');
+                setStatus('Answer received successfully.');
+            } catch (error) {
+                addMessage('Sorry, an error occurred while getting an answer.', 'bot');
+                setStatus(error.message || 'Unknown error while contacting backend.', true);
+            } finally {
+                sendButton.disabled = false;
+            }
+        }
+
+        async function loadMedicines() {
+            try {
+                const response = await fetch('/medicines');
+                if (!response.ok) {
+                    throw new Error(`Server returned ${response.status}`);
+                }
+                const data = await response.json();
+                medicineSelect.innerHTML = '<option value="">Select a medicine</option>';
+                if (data.medicines && Array.isArray(data.medicines)) {
+                    data.medicines.forEach(med => {
+                        const option = document.createElement('option');
+                        option.value = med;
+                        option.textContent = med;
+                        medicineSelect.appendChild(option);
+                    });
+                }
+                setStatus('Medicine list loaded.');
+            } catch (error) {
+                setStatus(`Could not load medicines: ${error.message}`, true);
+            }
+        }
+
+        sendButton.addEventListener('click', sendQuestion);
+        questionInput.addEventListener('keydown', event => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendQuestion();
+            }
+        });
+
+        // Keep selected medicine separate and include it in request payload.
+
+        loadMedicines();
+    </script>
+</body>
+</html>
